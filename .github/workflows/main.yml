@@ -53,15 +53,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Compose and Start all Services
+      - name: Set up Docker Compose (V2) and Start all Services
         run: |
-          docker-compose up -d --build
+          docker compose version
+          docker compose up -d --build
           sleep 30 # Warte auf Container-Startup
-          docker-compose ps
+          docker compose ps
 
       - name: Test Backend Health Endpoint
         run: |
           curl --fail http://localhost:8080/actuator/health || exit 1
 
       - name: Shutdown Docker Compose
-        run: docker-compose down
+        run: docker compose down
