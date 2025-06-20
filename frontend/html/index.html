@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Demo Frontend</title>
+  <!-- Einfache Styles für bessere Optik -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      background: #f7f7f7;
+    }
+
+    h1 {
+      color: #336699;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 50%;
+      background: #fff;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+
+    th {
+      background: #ddeeff;
+    }
+
+    tr:nth-child(even) {
+      background: #f2f2f2;
+    }
+
+    #customerForm {
+      margin-top: 2em;
+    }
+
+    label {
+      display: inline-block;
+      width: 70px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Kundenliste</h1>
+  <!-- Tabelle für die Kunden -->
+  <table id="customerTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Hier werden die Kunden dynamisch eingefügt -->
+    </tbody>
+  </table>
+
+  <!-- Formular, um neue Kunden anzulegen -->
+  <form id="customerForm">
+    <h2>Neuen Kunden anlegen</h2>
+    <label for="name">Name:</label>
+    <input type="text" id="name" required>
+    <button type="submit">Hinzufügen</button>
+    <span id="msg" style="color:green; margin-left:1em;"></span>
+  </form>
+
+  <!-- Login-Formular -->
+  <form id="loginForm">
+    <h2>Login</h2>
+    <label for="username">Benutzer:</label>
+    <input type="text" id="username" required>
+    <label for="password">Passwort:</label>
+    <input type="password" id="password" required>
+    <button type="submit">Login</button>
+    <span id="loginMsg" style="color:red; margin-left:1em;"></span>
+  </form>
+
+  <div id="logoutArea" style="display:none;">
+    Angemeldet als <span id="currentUser"></span> (<span id="currentRole"></span>)
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <!-- transaktion -->
+  <h2>Transaktionen für Kunde <span id="selectedCustomerName">[bitte wählen]</span></h2>
+  <button id="loadTransactionsBtn" style="display:none">Transaktionen laden</button>
+  <table id="transactionTable" style="display:none">
+    <thead>
+      <tr>
+        <th>Betrag</th>
+        <th>Beschreibung</th>
+        <th>Datum</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Transaktionen werden hier eingefügt -->
+    </tbody>
+  </table>
+
+  <form id="transactionForm" style="display:none">
+    <h3>Neue Transaktion anlegen</h3>
+    <input type="number" id="txnAmount" placeholder="Betrag" required step="0.01">
+    <input type="text" id="txnDesc" placeholder="Beschreibung" required>
+    <button type="submit">Speichern</button>
+    <span id="txnMsg" style="color:green; margin-left:1em;"></span>
+  </form>
+
+
+  <script>
+    // Backend-API-URL (evtl. anpassen, falls reverse proxy verwendet wird!)
+    const API_URL = '/api/customers';
+
+    // Funktion: Kunden von der API laden und in die Tabelle einfügen
+    function loadCustomers() {
+      fetch(API_URL)
+        .then(response => response.json())
+        .then(customers => {
+          const tableBody = document.querySelector('#customerTable tbody');
+          tableBody.innerHTML = '';
+          customers.forEach(customer => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${customer.id}</td><td>${customer.name}</td>`;
+            tableBody.appendChild(row);
+          });
+        })
+        .catch(() => {
+          document.querySelector('#customerTable tbody').innerHTML =
+            '<tr><td colspan="2">Fehler beim Laden der Kunden!</td></tr>';
+        });
+    }
+
+    // Beim Laden der Seite sofort Kunden anzeigen
+    loadCustomers();
+
+    // Formular: Neuen Kunden anlegen
+    document.getElementById('customerForm').addEventListener('submit', function (e) {
+      e.preventDefault(); // Verhindert Neuladen der Seite
+      const name = document.getElementById('name').value.trim();
+      if (!name) return;
+      // Sende neuen Kunden per POST an das Backend
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      })
+        .then(response => {
+          if (!response.ok) throw new Error('Fehler beim Anlegen!');
+          return response.json();
+        })
+        .then(customer => {
+          document.getElementById('msg').textContent = 'Kunde gespeichert!';
+          document.getElementById('name').value = '';
+          loadCustomers(); // Tabelle aktualisieren
+          setTimeout(() => document.getElementById('msg').textContent = '', 2000);
+        })
+        .catch(() => {
+          document.getElementById('msg').textContent = 'Fehler beim Speichern!';
+        });
+    });
+
+    let authHeader = "";
+
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const user = document.getElementById('username').value.trim();
+      const pw = document.getElementById('password').value;
+      authHeader = "Basic " + btoa(user + ":" + pw);
+      fetch('/api/customers', { headers: { "Authorization": authHeader } })
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(() => {
+          document.getElementById('loginMsg').textContent = "";
+          loadCustomers();
+        })
+        .catch(() => {
+          document.getElementById('loginMsg').textContent = "Login fehlgeschlagen!";
+          authHeader = "";
+        });
+    });
+
+    // Passe loadCustomers an:
+    function loadCustomers() {
+      fetch('/api/customers', { headers: { "Authorization": authHeader } })
+        .then(response => response.json())
+        .then(customers => {
+          // ... wie gehabt ...
+        })
+        .catch(() => {
+          // ...
+        });
+    }
+
+    // Passe auch das POST an:
+    // fetch('/api/customers', {
+    //   method: 'POST',
+    //   headers: { "Content-Type": "application/json", "Authorization": authHeader },
+    //   body: JSON.stringify({ name })
+    // })
+
+    // Transaktionen laden
+    // ...vorherige JS-Variablen/Funktionen...
+    let selectedCustomerId = null;
+    let selectedCustomerName = "";
+
+    document.querySelector('#customerTable').addEventListener('click', function (e) {
+      const tr = e.target.closest('tr');
+      if (tr && tr.children.length > 1) {
+        selectedCustomerId = tr.children[0].textContent;
+        selectedCustomerName = tr.children[1].textContent;
+        document.getElementById('selectedCustomerName').textContent = selectedCustomerName;
+        document.getElementById('loadTransactionsBtn').style.display = "";
+        document.getElementById('transactionForm').style.display = "";
+        loadTransactions();
+      }
+    });
+
+    document.getElementById('loadTransactionsBtn').addEventListener('click', loadTransactions);
+
+    function loadTransactions() {
+      if (!selectedCustomerId) return;
+      fetch(`/api/transactions/customer/${selectedCustomerId}`, { headers: { "Authorization": authHeader } })
+        .then(r => r.json())
+        .then(data => {
+          const tbody = document.querySelector('#transactionTable tbody');
+          tbody.innerHTML = "";
+          data.forEach(txn => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${txn.amount}</td><td>${txn.description}</td><td>${txn.timestamp.replace('T', ' ')}</td>`;
+            tbody.appendChild(row);
+          });
+          document.getElementById('transactionTable').style.display = "";
+        });
+    }
+
+    document.getElementById('transactionForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!selectedCustomerId) return;
+      const amount = parseFloat(document.getElementById('txnAmount').value);
+      const description = document.getElementById('txnDesc').value;
+      fetch('/api/transactions', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json", "Authorization": authHeader },
+        body: JSON.stringify({ customerId: selectedCustomerId, amount, description })
+      })
+        .then(r => {
+          if (!r.ok) throw new Error();
+          return r.json();
+        })
+        .then(() => {
+          document.getElementById('txnMsg').textContent = "Gespeichert!";
+          loadTransactions();
+          setTimeout(() => document.getElementById('txnMsg').textContent = "", 2000);
+        })
+        .catch(() => {
+          document.getElementById('txnMsg').textContent = "Fehler beim Speichern!";
+        });
+    });
+  </script>
+</body>
+
+</html>
