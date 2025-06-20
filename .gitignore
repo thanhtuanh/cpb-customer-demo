@@ -1,0 +1,55 @@
+# Maven output
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.sw?
+
+# Node/npm (falls Frontend mit npm gebaut wird)
+node_modules/
+
+# Docker
+*.pid
+
+# Env files
+.env
+.env.*
+
+# Test output
+coverage/
+jacoco.exec
+
+# Ignore build artifacts
+*.class
+
+# Ignore CI/CD outputs
+*.hprof
+
+# Ignore IntelliJ and Eclipse project files
+*.classpath
+*.project
+*.settings/
+
+# Ignore frontend build
+/frontend/dist/
+/frontend/build/
+
+# Ignore database files
+*.db
+*.mv.db
+*.h2.db
+
+# Ignore backups
+*~
